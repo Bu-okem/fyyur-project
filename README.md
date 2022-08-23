@@ -1,1 +1,1 @@
-# fyyur-project
+# Fyyur Project
