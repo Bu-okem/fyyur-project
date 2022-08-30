@@ -21,7 +21,7 @@
       </div>
       <div class="form-group">
           <label for="phone">Phone</label>
-          {{ form.phone(class_ = 'form-control', placeholder='xxx-xxx-xxxx', autofocus = true) }}
+          {{ form.phone(class_ = 'form-control', placeholder='xxx-xxx-xxxx', autofocus = true, pattern='\d\d\d-\d\d\d-\d\d\d\d') }}
         </div>
       <div class="form-group">
         <label for="genres">Genres</label>

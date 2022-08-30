@@ -2,27 +2,25 @@
 # Imports
 #----------------------------------------------------------------------------#
 
-import json
 import dateutil.parser
 import babel
 import sys
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify, abort
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 import logging
 from logging import Formatter, FileHandler
-from flask_wtf import Form
 from forms import *
+from models import *
 from flask_migrate import Migrate
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
 
-app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 # TODO: connect to a local postgresql database
@@ -31,63 +29,7 @@ migrate = Migrate(app, db)
 # Models.
 #----------------------------------------------------------------------------#
 
-shows_table = db.Table('shows_table',
-  db.Column('artist_id', db.Integer, db.ForeignKey('artist.id')),
-  db.Column('venue_id', db.Integer, db.ForeignKey('venues.id'))
-)
 
-class Show(db.Model):
-  __tablename__ = 'shows'
-
-  id = db.Column(db.Integer, primary_key=True)
-  artist_id = db.Column(db.Integer)
-  artist_name = db.Column(db.String(50))
-  artist_image_link = db.Column(db.String(120))
-  venue_id = db.Column(db.Integer)
-  venue_name = db.Column(db.String(50))
-  start_time = db.Column(db.String(50))
-
-class Area(db.Model):
-  __tablename__ = 'areas'
-
-  # The area table contains the list of cities and states, with the venues in those cities  
-  id = db.Column(db.Integer, primary_key=True)
-  state = db.Column(db.String(120))
-  city = db.Column(db.String(120))
-  venues = db.relationship('Venue', backref='area', lazy=True)
-
-class Artist(db.Model):
-  __tablename__ = 'artist'
-
-  id = db.Column(db.Integer, primary_key=True)
-  name = db.Column(db.String)
-  city = db.Column(db.String(120))
-  state = db.Column(db.String(120))
-  phone = db.Column(db.String(120))
-  genres = db.Column(db.String(120))
-  image_link = db.Column(db.String(500))
-  facebook_link = db.Column(db.String(120))
-  website_link = db.Column(db.String(120))
-  seeking_venue = db.Column(db.Boolean, default=False)
-  seeking_description = db.Column(db.String(120))
-  performing = db.relationship('Venue', secondary=shows_table, backref='performers')
-
-  # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-class Venue(db.Model):
-  __tablename__ = 'venues'
-
-  id = db.Column(db.Integer, primary_key=True)
-  name = db.Column(db.String)
-  address = db.Column(db.String(120))
-  phone = db.Column(db.String(120))
-  genres = db.Column(db.String(120))
-  image_link = db.Column(db.String(500))
-  facebook_link = db.Column(db.String(120))
-  website_link = db.Column(db.String(120))
-  seeking_talent = db.Column(db.Boolean, default=False)
-  seeking_description = db.Column(db.String(120))
-  area_id = db.Column(db.Integer, db.ForeignKey('areas.id'), nullable=False)
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -158,7 +100,31 @@ def show_venue(venue_id):
   # data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
 
   data = Venue.query.filter_by(id=venue_id).first() # Query a venue from the Venue table using venue_id (SELECT * FROM venue WHERE id = venue_id) 
-  return render_template('pages/show_venue.html', venue=data)
+  genres = []
+
+  for genre in data.genres.split(","):
+    if '{' in genre:
+      genre = genre[1:]
+      genres.append(genre)
+    elif '}' in genre:
+      genre = genre[:-1]
+      genres.append(genre)
+    else:
+      genres.append(genre)
+
+  past_shows = db.session.query(Show).join(Venue).filter(venue_id==venue_id).filter(func.date(Show.start_time) < datetime.utcnow()).filter_by(id=venue_id).all()
+  upcoming_shows = db.session.query(Show).join(Venue).filter(venue_id==venue_id).filter(func.date(Show.start_time) > datetime.utcnow()).filter_by(id=venue_id).all()
+
+
+  venue_shows = {
+    "upcoming_shows": upcoming_shows,
+    "upcoming_shows_count": len(upcoming_shows),
+    "past_shows": past_shows,
+    "past_shows_count": len(past_shows),
+  }
+
+  return render_template('pages/show_venue.html', venue=data, genres=genres, venue_shows=venue_shows)
+
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -215,7 +181,7 @@ def create_venue_submission():
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 # -- DELETE VENUE
 @app.route('/venues/<venue_id>/delete')
@@ -279,8 +245,32 @@ def show_artist(artist_id):
   # TODO: replace with real artist data from the artist table, using artist_id
 
   data = Artist.query.filter_by(id=artist_id).first() # SELECT * FROM artists WHERE id = artist_id
+
+  genres = []
+
+  for genre in data.genres.split(","):
+    if '{' in genre:
+      genre = genre[1:]
+      genres.append(genre)
+    elif '}' in genre:
+      genre = genre[:-1]
+      genres.append(genre)
+    else:
+      genres.append(genre)
+
+      
+  past_shows = db.session.query(Show).join(Artist).filter(artist_id==artist_id).filter(func.date(Show.start_time) < datetime.utcnow()).filter_by(id=artist_id).all()
+  upcoming_shows = db.session.query(Show).join(Artist).filter(artist_id==artist_id).filter(func.date(Show.start_time) > datetime.utcnow()).filter_by(id=artist_id).all()
+
+
+  artist_shows = {
+    "upcoming_shows": upcoming_shows,
+    "upcoming_shows_count": len(upcoming_shows),
+    "past_shows": past_shows,
+    "past_shows_count": len(past_shows),
+  }
   # list(filter(lambda d: d['id'] == artist_id, ))[0]
-  return render_template('pages/show_artist.html', artist=data)
+  return render_template('pages/show_artist.html', artist=data, genres=genres, artist_shows=artist_shows)
 
 #  Update
 #  ----------------------------------------------------------------
@@ -416,7 +406,7 @@ def create_artist_submission():
     else:
       seeking_venue = False
     seeking_description = request.form.get('seeking_description')
-    
+      
     artist = Artist(name=name, city=city, state=state, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link, website_link=website_link, seeking_venue=seeking_venue, seeking_description=seeking_description)
 
     db.session.add(artist)
@@ -436,7 +426,7 @@ def create_artist_submission():
   flash('Artist ' + request.form['name'] + ' was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 # -- DELETE ARTIST
 @app.route('/artists/<artist_id>/delete')
@@ -493,7 +483,7 @@ def create_show_submission():
     show_venue = Venue.query.filter_by(id=venue_id).first()
 
     performer.performing.append(show_venue)
-    show = Show(artist_id=performer.id, artist_name=performer.name, artist_image_link=performer.image_link, venue_id=show_venue.id, venue_name=show_venue.name, start_time=start_time)
+    show = Show(artist_id=performer.id, artist_name=performer.name, artist_image_link=performer.image_link, venue_id=show_venue.id, venue_name=show_venue.name, venue_image_link=show_venue.image_link, start_time=start_time)
 
     db.session.add(show)
     db.session.commit()
@@ -511,7 +501,7 @@ def create_show_submission():
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Show could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 @app.errorhandler(404)
 def not_found_error(error):
