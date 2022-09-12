@@ -55,6 +55,15 @@ app.jinja_env.filters['datetime'] = format_datetime
 # Controllers.
 #----------------------------------------------------------------------------#
 
+@app.route('/git_update', methods=['POST'])
+def git_update():
+    repo = git.Repo('./orbe')
+    origin = repo.remotes.origin
+    repo.create_head('main',
+                     origin.refs.main).set_tracking_branch(origin.refs.main).checkout()
+    origin.pull()
+    return '', 200
+
 @app.route('/')
 def index():
   # Query the 10 latest entries in the Artist table (DESC, LIMIT) SELECT * FROM artists ORDER BY id DESC LIMIT 4;
