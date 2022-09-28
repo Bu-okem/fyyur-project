@@ -16,6 +16,7 @@ from forms import *
 from models import *
 from flask_migrate import Migrate
 import git
+import gunicorn
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
