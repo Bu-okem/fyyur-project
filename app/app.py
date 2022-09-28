@@ -12,8 +12,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, func
 import logging
 from logging import Formatter, FileHandler
-from forms import *
-from models import *
+from .forms import *
+from .models import *
 from flask_migrate import Migrate
 import git
 import gunicorn
