@@ -15,6 +15,7 @@ from logging import Formatter, FileHandler
 from forms import *
 from models import *
 from flask_migrate import Migrate
+import git
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -57,7 +58,7 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/git_update', methods=['POST'])
 def git_update():
-    repo = git.Repo('./orbe')
+    repo = git.Repo('./fyyur-project')
     origin = repo.remotes.origin
     repo.create_head('main',
                      origin.refs.main).set_tracking_branch(origin.refs.main).checkout()
