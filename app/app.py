@@ -21,9 +21,10 @@ import gunicorn
 # App Config.
 #----------------------------------------------------------------------------#
 
-app = Flask(__name__)
+app = app
 moment = Moment(app)
-app.config.from_object('.config')
+#app.config.from_object('config')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://apajblqiprtuxn:bcff78238e24e158b26aa866f32d549c1295a96d23b2c2ab594fd42b18c86270@ec2-3-92-98-129.compute-1.amazonaws.com:5432/df6ein33quthou'
 migrate = Migrate(app, db)
 
 # TODO: connect to a local postgresql database
