@@ -23,7 +23,7 @@ import gunicorn
 
 app = Flask(__name__)
 moment = Moment(app)
-app.config.from_object('config')
+app.config.from_object('.config')
 migrate = Migrate(app, db)
 
 # TODO: connect to a local postgresql database
